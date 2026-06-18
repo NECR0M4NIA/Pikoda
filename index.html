@@ -212,14 +212,9 @@
       margin-bottom: 10px;
     }
 
-    .section-header {
+    .section-header-left {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-    }
-
-    .section-header label.section {
-      margin-bottom: 0;
     }
 
     /* interrupteur activer/désactiver un filtre, façon contacteur de boîtier */
@@ -259,8 +254,64 @@
       background: var(--ink);
     }
 
+    /* ---------- accordéon ---------- */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .section-header label.section {
+      margin-bottom: 0;
+      cursor: pointer;
+    }
+
+    .section-header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .section-header:hover label.section {
+      color: var(--ink);
+    }
+
+    .collapse-arrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      color: var(--ink-dim);
+      font-size: 10px;
+      font-family: var(--mono);
+      transition: transform 0.2s ease, color 0.15s;
+      flex-shrink: 0;
+      margin-left: 6px;
+    }
+
+    .section-header:hover .collapse-arrow {
+      color: var(--ink);
+    }
+
+    .field-group.collapsed .collapse-arrow {
+      transform: rotate(-90deg);
+    }
+
     .field-group .section-body {
-      transition: opacity 0.15s;
+      transition: opacity 0.15s, max-height 0.25s ease, margin-top 0.2s ease;
+      overflow: hidden;
+      max-height: 600px;
+      margin-top: 0;
+    }
+
+    .field-group.collapsed .section-body {
+      max-height: 0 !important;
+      opacity: 0 !important;
+      pointer-events: none;
+      margin-top: 0;
     }
 
     .field-group.disabled .section-body {
@@ -485,9 +536,12 @@
 
       <div class="divider"></div>
 
-      <div class="field-group" id="group-exposure">
+      <div class="field-group collapsed" id="group-exposure">
         <div class="section-header">
-          <label class="section">Exposition</label>
+          <div class="section-header-left">
+            <label class="section">Exposition</label>
+            <span class="collapse-arrow">▾</span>
+          </div>
           <input type="checkbox" class="filter-toggle live-control" id="exposureEnabled" />
         </div>
         <div class="section-body">
@@ -500,9 +554,12 @@
 
       <div class="divider"></div>
 
-      <div class="field-group" id="group-levels">
+      <div class="field-group collapsed" id="group-levels">
         <div class="section-header">
-          <label class="section">Niveaux</label>
+          <div class="section-header-left">
+            <label class="section">Niveaux</label>
+            <span class="collapse-arrow">▾</span>
+          </div>
           <input type="checkbox" class="filter-toggle live-control" id="levelsEnabled" />
         </div>
         <div class="section-body">
@@ -523,9 +580,61 @@
 
       <div class="divider"></div>
 
-      <div class="field-group" id="group-contrast">
+      <!-- ===== COURBES ===== -->
+      <div class="field-group collapsed" id="group-curves">
         <div class="section-header">
-          <label class="section">Contraste</label>
+          <div class="section-header-left">
+            <label class="section">Courbes</label>
+            <span class="collapse-arrow">▾</span>
+          </div>
+          <input type="checkbox" class="filter-toggle live-control" id="curvesEnabled" />
+        </div>
+        <div class="section-body">
+          <div id="curves-ui" style="margin-top:10px;">
+            <!-- Sélecteur de canal -->
+            <div style="display:flex;gap:4px;margin-bottom:8px;">
+              <button class="curve-ch-btn active" data-ch="rgb" style="flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:5px 0;background:var(--panel-raised);border:1px solid var(--border);color:var(--ink);cursor:pointer;border-radius:2px;text-transform:uppercase;">RVB</button>
+              <button class="curve-ch-btn" data-ch="r" style="flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:5px 0;background:var(--panel-raised);border:1px solid var(--border);color:#c2452b;cursor:pointer;border-radius:2px;text-transform:uppercase;">R</button>
+              <button class="curve-ch-btn" data-ch="g" style="flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:5px 0;background:var(--panel-raised);border:1px solid var(--border);color:#4f7268;cursor:pointer;border-radius:2px;text-transform:uppercase;">V</button>
+              <button class="curve-ch-btn" data-ch="b" style="flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:5px 0;background:var(--panel-raised);border:1px solid var(--border);color:#4a7aad;cursor:pointer;border-radius:2px;text-transform:uppercase;">B</button>
+            </div>
+            <!-- Histogramme + courbe -->
+            <div style="position:relative;">
+              <canvas id="curvesHistoCanvas" width="276" height="200" style="position:absolute;top:0;left:0;width:100%;height:200px;pointer-events:none;opacity:0.25;border-radius:2px;"></canvas>
+              <canvas id="curvesCanvas" width="276" height="200" style="width:100%;height:200px;display:block;border:1px solid var(--border);border-radius:2px;cursor:crosshair;background:var(--panel-raised);"></canvas>
+            </div>
+            <!-- Info point -->
+            <div id="curveInfo" style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--ink-dim);margin-top:6px;">
+              <span>Entrée: <span id="curveInVal">—</span></span>
+              <span>Sortie: <span id="curveOutVal">—</span></span>
+              <span id="curvePtCount">2 points</span>
+            </div>
+            <!-- Presets -->
+            <div style="margin-top:10px;">
+              <div style="font-family:var(--mono);font-size:10px;color:var(--ink-dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Presets</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                <button class="curve-preset" data-preset="linear" style="font-family:var(--mono);font-size:10px;padding:5px 4px;background:var(--panel-raised);border:1px solid var(--border);color:var(--ink-dim);cursor:pointer;border-radius:2px;text-align:left;letter-spacing:.04em;">↗ Linéaire</button>
+                <button class="curve-preset" data-preset="contrast" style="font-family:var(--mono);font-size:10px;padding:5px 4px;background:var(--panel-raised);border:1px solid var(--border);color:var(--ink-dim);cursor:pointer;border-radius:2px;text-align:left;letter-spacing:.04em;">S Contraste</button>
+                <button class="curve-preset" data-preset="lift" style="font-family:var(--mono);font-size:10px;padding:5px 4px;background:var(--panel-raised);border:1px solid var(--border);color:var(--ink-dim);cursor:pointer;border-radius:2px;text-align:left;letter-spacing:.04em;">⬆ Lift noirs</button>
+                <button class="curve-preset" data-preset="fade" style="font-family:var(--mono);font-size:10px;padding:5px 4px;background:var(--panel-raised);border:1px solid var(--border);color:var(--ink-dim);cursor:pointer;border-radius:2px;text-align:left;letter-spacing:.04em;">≈ Fade cinéma</button>
+                <button class="curve-preset" data-preset="brighten" style="font-family:var(--mono);font-size:10px;padding:5px 4px;background:var(--panel-raised);border:1px solid var(--border);color:var(--ink-dim);cursor:pointer;border-radius:2px;text-align:left;letter-spacing:.04em;">☀ Éclaircir</button>
+                <button class="curve-preset" data-preset="darken" style="font-family:var(--mono);font-size:10px;padding:5px 4px;background:var(--panel-raised);border:1px solid var(--border);color:var(--ink-dim);cursor:pointer;border-radius:2px;text-align:left;letter-spacing:.04em;">🌑 Assombrir</button>
+              </div>
+            </div>
+            <!-- Reset -->
+            <button id="curvesReset" style="margin-top:8px;width:100%;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:6px;background:transparent;border:1px solid var(--border);color:var(--ink-dim);cursor:pointer;border-radius:2px;text-transform:uppercase;">Réinitialiser</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-group collapsed" id="group-contrast">
+        <div class="section-header">
+          <div class="section-header-left">
+            <label class="section">Contraste</label>
+            <span class="collapse-arrow">▾</span>
+          </div>
           <input type="checkbox" class="filter-toggle live-control" id="contrastEnabled" />
         </div>
         <div class="section-body">
@@ -538,9 +647,12 @@
 
       <div class="divider"></div>
 
-      <div class="field-group" id="group-saturation">
+      <div class="field-group collapsed" id="group-saturation">
         <div class="section-header">
-          <label class="section">Saturation</label>
+          <div class="section-header-left">
+            <label class="section">Saturation</label>
+            <span class="collapse-arrow">▾</span>
+          </div>
           <input type="checkbox" class="filter-toggle live-control" id="saturationEnabled" />
         </div>
         <div class="section-body">
@@ -553,9 +665,12 @@
 
       <div class="divider"></div>
 
-      <div class="field-group" id="group-colorSwap">
+      <div class="field-group collapsed" id="group-colorSwap">
         <div class="section-header">
-          <label class="section">Teinte ciblée</label>
+          <div class="section-header-left">
+            <label class="section">Teinte ciblée</label>
+            <span class="collapse-arrow">▾</span>
+          </div>
           <input type="checkbox" class="filter-toggle live-control" id="colorSwapEnabled" />
         </div>
         <div class="section-body">
@@ -584,9 +699,12 @@
 
       <div class="divider"></div>
 
-      <div class="field-group" id="group-grain">
+      <div class="field-group collapsed" id="group-grain">
         <div class="section-header">
-          <label class="section">Grain</label>
+          <div class="section-header-left">
+            <label class="section">Grain</label>
+            <span class="collapse-arrow">▾</span>
+          </div>
           <input type="checkbox" class="filter-toggle live-control" id="grainEnabled" />
         </div>
         <div class="section-body">
@@ -607,9 +725,12 @@
 
       <div class="divider"></div>
 
-      <div class="field-group" id="group-lut">
+      <div class="field-group collapsed" id="group-lut">
         <div class="section-header">
-          <label class="section">LUT Cinéma (.cube)</label>
+          <div class="section-header-left">
+            <label class="section">LUT Cinéma (.cube)</label>
+            <span class="collapse-arrow">▾</span>
+          </div>
           <input type="checkbox" class="filter-toggle live-control" id="lutEnabled" />
         </div>
         <div class="section-body">
@@ -765,6 +886,8 @@
           origWidth = w;
           origHeight = h;
 
+          drawHisto(ctx.getImageData(0, 0, w, h));
+
           renderPreview();
         };
         img.src = fileUrl;
@@ -811,6 +934,19 @@
           result[i] = origR + (lutRgb.r - origR) * intensity;
           result[i + 1] = origG + (lutRgb.g - origG) * intensity;
           result[i + 2] = origB + (lutRgb.b - origB) * intensity;
+        }
+      }
+
+      // 3. Applique les courbes (RVB global puis canaux R, G, B independants)
+      if (document.getElementById('curvesEnabled').checked) {
+        const lutRGB = curveData['rgb'].lut;
+        const lutR   = curveData['r'].lut;
+        const lutG   = curveData['g'].lut;
+        const lutB   = curveData['b'].lut;
+        for (let i = 0; i < result.length; i += 4) {
+          result[i]     = lutR[ lutRGB[ result[i]     ] ];
+          result[i + 1] = lutG[ lutRGB[ result[i + 1] ] ];
+          result[i + 2] = lutB[ lutRGB[ result[i + 2] ] ];
         }
       }
 
@@ -1002,6 +1138,13 @@
           size: Number(document.getElementById('grainSize').value),
           monochrome: document.getElementById('grainMono').checked,
         },
+        curves: {
+          enabled: document.getElementById('curvesEnabled').checked,
+          rgb: curveData['rgb'].lut,
+          r:   curveData['r'].lut,
+          g:   curveData['g'].lut,
+          b:   curveData['b'].lut,
+        },
       };
     }
 
@@ -1123,6 +1266,21 @@
       reader.readAsText(file);
     });
 
+    // ---- helper : applique les courbes sur un tableau de pixels ----
+    function applyCurvesToPixels(pixels, opts) {
+      if (!opts.curves || !opts.curves.enabled) return pixels;
+      const lutRGB = opts.curves.rgb;
+      const lutR   = opts.curves.r;
+      const lutG   = opts.curves.g;
+      const lutB   = opts.curves.b;
+      for (let i = 0; i < pixels.length; i += 4) {
+        pixels[i]     = lutR[ lutRGB[ pixels[i]     ] ];
+        pixels[i + 1] = lutG[ lutRGB[ pixels[i + 1] ] ];
+        pixels[i + 2] = lutB[ lutRGB[ pixels[i + 2] ] ];
+      }
+      return pixels;
+    }
+
     // ---- export ----
     exportBtn.addEventListener('click', async () => {
       if (!currentFilePath) return;
@@ -1133,9 +1291,65 @@
 
       try {
         if (currentFileType === 'image') {
-          setStatus('Traitement de l\'image…', true);
+          setStatus("Traitement de l'image…", true);
+          fillEl.style.width = '40%';
+
+          // Charge l'image originale en pleine resolution dans un canvas hors-ecran
+          const exportCanvas = document.createElement('canvas');
+          const exportCtx = exportCanvas.getContext('2d');
+          const img = new Image();
+          await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = 'file://' + currentFilePath.replace(/\\/g, '/'); });
+          exportCanvas.width  = img.naturalWidth;
+          exportCanvas.height = img.naturalHeight;
+          exportCtx.drawImage(img, 0, 0);
+          const rawData = new Uint8ClampedArray(exportCtx.getImageData(0, 0, exportCanvas.width, exportCanvas.height).data);
+
           fillEl.style.width = '60%';
-          await window.filmLook.processImage({ inputPath: currentFilePath, outputPath, options });
+
+          // Pipeline de base (exposition, niveaux, grain, etc.)
+          let result = window.filmLook.applyEffects(rawData, exportCanvas.width, exportCanvas.height, options);
+
+          // LUT cinema si activee
+          const lutEnabled = document.getElementById('lutEnabled').checked;
+          if (lutEnabled && currentLutData) {
+            const intensity = parseFloat(document.getElementById('lutIntensity').value) / 100;
+            const layout = document.getElementById('lutLayout').value;
+            for (let i = 0; i < result.length; i += 4) {
+              const lutRgb = applyLutToPixel(result[i], result[i+1], result[i+2], currentLutData, layout);
+              result[i]     = result[i]     + (lutRgb.r - result[i])     * intensity;
+              result[i + 1] = result[i + 1] + (lutRgb.g - result[i + 1]) * intensity;
+              result[i + 2] = result[i + 2] + (lutRgb.b - result[i + 2]) * intensity;
+            }
+          }
+
+          // Courbes
+          applyCurvesToPixels(result, options);
+
+          fillEl.style.width = '80%';
+
+          // Recompose et sauvegarde
+          const finalImageData = new ImageData(new Uint8ClampedArray(result), exportCanvas.width, exportCanvas.height);
+          exportCtx.putImageData(finalImageData, 0, 0);
+
+          // Sauvegarde via filmLook si possible, sinon lien de telechargement
+          try {
+            const blob = await new Promise(res => exportCanvas.toBlob(res, 'image/png'));
+            const arrayBuffer = await blob.arrayBuffer();
+            if (window.filmLook.saveFile) {
+              await window.filmLook.saveFile({ outputPath, buffer: Array.from(new Uint8Array(arrayBuffer)) });
+            } else {
+              // Fallback : download direct dans le navigateur
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = outputPath.split(/[\/]/).pop(); a.click();
+              URL.revokeObjectURL(url);
+            }
+          } catch(saveErr) {
+            // Dernier recours : ancienne methode processImage sans courbes
+            console.warn('saveFile indisponible, fallback processImage', saveErr);
+            await window.filmLook.processImage({ inputPath: currentFilePath, outputPath, options });
+          }
+
           fillEl.style.width = '100%';
           setStatus('Export terminé ✓ — ' + outputPath, true);
         } else {
@@ -1151,6 +1365,378 @@
 
     lutIntensity.addEventListener('input', () => {
       lutIntensityVal.textContent = `${lutIntensity.value}%`;
+    });
+
+    // ======================== COURBES ENGINE ========================
+    const CURVE_CHANNELS = ['rgb','r','g','b'];
+    const curveData = {};
+    CURVE_CHANNELS.forEach(ch => {
+      curveData[ch] = { points: [{x:0,y:0},{x:255,y:255}], lut: null };
+    });
+
+    let activeCurveChannel = 'rgb';
+    let dragIndex = -1;
+    let hoveredIndex = -1;
+
+    const cvs = document.getElementById('curvesCanvas');
+    const histoCvs = document.getElementById('curvesHistoCanvas');
+    const ctx = cvs.getContext('2d');
+    const histoCtx = histoCvs.getContext('2d');
+    const PAD = 14;
+
+    function curveColor(ch) {
+      return ch==='r'?'#e05a45':ch==='g'?'#4f7268':ch==='b'?'#4a7aad':'#ece3d3';
+    }
+
+    // -- Spline cubique monotone (Steffen 1990) -- stable, sans oscillations --
+    function buildSpline(pts) {
+      const n = pts.length;
+      // Cas triviaux
+      if (n < 2) return (x) => x;
+      if (n === 2) {
+        const dx = pts[1].x - pts[0].x || 1;
+        const dy = pts[1].y - pts[0].y;
+        const slope = dy / dx;
+        return (x) => Math.max(0, Math.min(255, pts[0].y + slope * (x - pts[0].x)));
+      }
+
+      const xs = pts.map(p => p.x);
+      const ys = pts.map(p => p.y);
+
+      // Pentes entre points consecutifs
+      const h = [], s = [];
+      for (let i = 0; i < n - 1; i++) {
+        h[i] = xs[i + 1] - xs[i] || 1e-10;
+        s[i] = (ys[i + 1] - ys[i]) / h[i];
+      }
+
+      // Tangentes via methode de Steffen (garantit la monotonie)
+      const m = new Array(n);
+      m[0] = s[0];
+      m[n - 1] = s[n - 2];
+      for (let i = 1; i < n - 1; i++) {
+        // Signe des pentes voisines
+        if (s[i - 1] * s[i] <= 0) {
+          m[i] = 0; // Extremum local => tangente nulle
+        } else {
+          const p = (s[i - 1] * h[i] + s[i] * h[i - 1]) / (h[i - 1] + h[i]);
+          const limit = 2 * Math.min(Math.abs(s[i - 1]), Math.abs(s[i]));
+          m[i] = Math.abs(p) > limit
+            ? limit * Math.sign(p)
+            : p;
+        }
+      }
+
+      // Coefficients des polynomes cubiques par segment
+      const a = ys.slice(0, n - 1);
+      const b = m.slice(0, n - 1);
+      const c = [], d = [];
+      for (let i = 0; i < n - 1; i++) {
+        c[i] = (3 * s[i] - 2 * m[i] - m[i + 1]) / h[i];
+        d[i] = (m[i] + m[i + 1] - 2 * s[i]) / (h[i] * h[i]);
+      }
+
+      return function evalSpline(x) {
+        // Recherche dichotomique du segment
+        let lo = 0, hi = n - 2;
+        while (lo < hi) {
+          const mid = (lo + hi + 1) >> 1;
+          xs[mid] <= x ? lo = mid : hi = mid - 1;
+        }
+        const i = lo;
+        const t = x - xs[i];
+        const val = a[i] + b[i] * t + c[i] * t * t + d[i] * t * t * t;
+        return Math.max(0, Math.min(255, val));
+      };
+    }
+
+    function buildLUT(ch) {
+      // Trier + dedoublonner les X (garde le dernier Y en cas de conflit)
+      const seen = new Map();
+      curveData[ch].points.forEach(p => seen.set(Math.round(p.x), Math.round(p.y)));
+      // Toujours avoir 0 et 255
+      if (!seen.has(0))   seen.set(0,   curveData[ch].points[0] ? curveData[ch].points[0].y : 0);
+      if (!seen.has(255)) seen.set(255, curveData[ch].points[curveData[ch].points.length-1] ? curveData[ch].points[curveData[ch].points.length-1].y : 255);
+      const pts = [...seen.entries()].map(([x,y])=>({x,y})).sort((a,b)=>a.x-b.x);
+      const spline = buildSpline(pts);
+      const lut = new Uint8Array(256);
+      for (let i = 0; i < 256; i++) lut[i] = Math.max(0, Math.min(255, Math.round(spline(i))));
+      curveData[ch].lut = lut;
+    }
+
+    CURVE_CHANNELS.forEach(buildLUT);
+
+    function toCanvas(p) {
+      const W=cvs.width, H=cvs.height;
+      return {
+        cx: PAD + (p.x/255)*(W-2*PAD),
+        cy: PAD + (1-p.y/255)*(H-2*PAD)
+      };
+    }
+
+    function fromCanvas(cx,cy) {
+      const W=cvs.width, H=cvs.height;
+      return {
+        x: Math.max(0,Math.min(255,Math.round((cx-PAD)/(W-2*PAD)*255))),
+        y: Math.max(0,Math.min(255,Math.round((1-(cy-PAD)/(H-2*PAD))*255)))
+      };
+    }
+
+    function drawCurve() {
+      const W=cvs.width, H=cvs.height;
+      ctx.clearRect(0,0,W,H);
+
+      // Grille
+      ctx.strokeStyle='rgba(255,255,255,0.05)';
+      ctx.lineWidth=0.5;
+      [64,128,192].forEach(v=>{
+        const x=PAD+(v/255)*(W-2*PAD);
+        const y=PAD+(1-v/255)*(H-2*PAD);
+        ctx.beginPath();ctx.moveTo(x,PAD);ctx.lineTo(x,H-PAD);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(PAD,y);ctx.lineTo(W-PAD,y);ctx.stroke();
+      });
+
+      // Diagonale référence
+      ctx.strokeStyle='rgba(255,255,255,0.08)';
+      ctx.lineWidth=1;
+      ctx.setLineDash([4,4]);
+      ctx.beginPath();ctx.moveTo(PAD,H-PAD);ctx.lineTo(W-PAD,PAD);ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Courbes des autres canaux en fantôme
+      CURVE_CHANNELS.filter(ch=>ch!==activeCurveChannel&&ch!=='rgb').forEach(ch=>{
+        const col=curveColor(ch);
+        const lut=curveData[ch].lut;
+        ctx.strokeStyle=col+'55';
+        ctx.lineWidth=1;
+        ctx.beginPath();
+        for(let i=0;i<=255;i++){
+          const cx=PAD+(i/255)*(W-2*PAD);
+          const cy=PAD+(1-lut[i]/255)*(H-2*PAD);
+          i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy);
+        }
+        ctx.stroke();
+      });
+
+      // Courbe active
+      const ch=activeCurveChannel;
+      const lut=curveData[ch].lut;
+      const col=curveColor(ch);
+
+      // Remplissage sous la courbe
+      ctx.beginPath();
+      ctx.moveTo(PAD,H-PAD);
+      for(let i=0;i<=255;i++){
+        const cx=PAD+(i/255)*(W-2*PAD);
+        const cy=PAD+(1-lut[i]/255)*(H-2*PAD);
+        ctx.lineTo(cx,cy);
+      }
+      ctx.lineTo(W-PAD,H-PAD);
+      ctx.closePath();
+      ctx.fillStyle=col+'18';
+      ctx.fill();
+
+      // Ligne
+      ctx.strokeStyle=col;
+      ctx.lineWidth=1.5;
+      ctx.beginPath();
+      for(let i=0;i<=255;i++){
+        const cx=PAD+(i/255)*(W-2*PAD);
+        const cy=PAD+(1-lut[i]/255)*(H-2*PAD);
+        i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy);
+      }
+      ctx.stroke();
+
+      // Points de contrôle
+      const pts=curveData[ch].points;
+      pts.forEach((p,i)=>{
+        const {cx,cy}=toCanvas(p);
+        const isDrag=i===dragIndex;
+        const isHov=i===hoveredIndex;
+        ctx.beginPath();
+        ctx.arc(cx,cy,isDrag?6:isHov?5:4,0,Math.PI*2);
+        ctx.fillStyle=isDrag?col:isHov?col+'cc':'#1c1814';
+        ctx.fill();
+        ctx.strokeStyle=col;
+        ctx.lineWidth=1.5;
+        ctx.stroke();
+      });
+
+      // Label
+      document.getElementById('curvePtCount').textContent=pts.length+' point'+(pts.length>1?'s':'');
+    }
+
+    function drawHisto(imageData) {
+      if(!imageData) return;
+      const W=histoCvs.width, H=histoCvs.height;
+      histoCtx.clearRect(0,0,W,H);
+      const data=imageData.data;
+      const bins={r:new Float32Array(256),g:new Float32Array(256),b:new Float32Array(256),luma:new Float32Array(256)};
+      for(let i=0;i<data.length;i+=4){
+        bins.r[data[i]]++;
+        bins.g[data[i+1]]++;
+        bins.b[data[i+2]]++;
+        const l=Math.round(0.299*data[i]+0.587*data[i+1]+0.114*data[i+2]);
+        bins.luma[l]++;
+      }
+      const maxVal=Math.max(...bins.luma,...bins.r,...bins.g,...bins.b);
+      const drawBins=(arr,color)=>{
+        histoCtx.fillStyle=color;
+        for(let i=0;i<256;i++){
+          const bH=(arr[i]/maxVal)*(H-2*PAD);
+          const bx=PAD+(i/255)*(W-2*PAD);
+          histoCtx.fillRect(bx,H-PAD-bH,Math.max(1,(W-2*PAD)/256),bH);
+        }
+      };
+      drawBins(bins.r,'rgba(220,90,69,0.6)');
+      drawBins(bins.g,'rgba(79,114,104,0.6)');
+      drawBins(bins.b,'rgba(74,122,173,0.6)');
+      drawBins(bins.luma,'rgba(236,227,211,0.35)');
+    }
+
+    // Interaction souris
+    function getNearestPoint(px,py) {
+      const pts=curveData[activeCurveChannel].points;
+      let best=-1, bestD=Infinity;
+      pts.forEach((p,i)=>{
+        const {cx,cy}=toCanvas(p);
+        const d=Math.hypot(cx-px,cy-py);
+        if(d<bestD){bestD=d;best=i;}
+      });
+      return bestD<12?best:-1;
+    }
+
+    cvs.addEventListener('mousedown',e=>{
+      const r=cvs.getBoundingClientRect();
+      const scaleX=cvs.width/r.width, scaleY=cvs.height/r.height;
+      const px=(e.clientX-r.left)*scaleX, py=(e.clientY-r.top)*scaleY;
+      const near=getNearestPoint(px,py);
+      if(near>=0){
+        dragIndex=near;
+      } else {
+        const p=fromCanvas(px,py);
+        // Empêche les doublons en X (±2px)
+        const pts=curveData[activeCurveChannel].points;
+        const exists=pts.find(pt=>Math.abs(pt.x-p.x)<3);
+        if(!exists){
+          pts.push(p);
+          pts.sort((a,b)=>a.x-b.x);
+          dragIndex=pts.findIndex(pt=>pt.x===p.x&&pt.y===p.y);
+        } else dragIndex=-1;
+      }
+      buildLUT(activeCurveChannel);
+      drawCurve();
+      schedulePreview();
+    });
+
+    cvs.addEventListener('mousemove',e=>{
+      const r=cvs.getBoundingClientRect();
+      const scaleX=cvs.width/r.width, scaleY=cvs.height/r.height;
+      const px=(e.clientX-r.left)*scaleX, py=(e.clientY-r.top)*scaleY;
+      const p=fromCanvas(px,py);
+      document.getElementById('curveInVal').textContent=p.x;
+      document.getElementById('curveOutVal').textContent=p.y;
+
+      if(dragIndex>=0){
+        const pts=curveData[activeCurveChannel].points;
+        const pt=pts[dragIndex];
+        // Les extrêmes (0 et 255) ne bougent qu'en Y
+        if(dragIndex===0||pt.x===0) pt.x=0;
+        else if(dragIndex===pts.length-1||pt.x===255) pt.x=255;
+        else pt.x=p.x;
+        pt.y=p.y;
+        buildLUT(activeCurveChannel);
+        drawCurve();
+        schedulePreview();
+      } else {
+        hoveredIndex=getNearestPoint(px,py);
+        cvs.style.cursor=hoveredIndex>=0?'grab':'crosshair';
+        drawCurve();
+      }
+    });
+
+    window.addEventListener('mouseup',()=>{dragIndex=-1;});
+
+    cvs.addEventListener('dblclick',e=>{
+      const r=cvs.getBoundingClientRect();
+      const scaleX=cvs.width/r.width, scaleY=cvs.height/r.height;
+      const px=(e.clientX-r.left)*scaleX, py=(e.clientY-r.top)*scaleY;
+      const near=getNearestPoint(px,py);
+      const pts=curveData[activeCurveChannel].points;
+      if(near>0&&near<pts.length-1){
+        pts.splice(near,1);
+        buildLUT(activeCurveChannel);
+        drawCurve();
+        schedulePreview();
+      }
+    });
+
+    cvs.addEventListener('mouseleave',()=>{
+      hoveredIndex=-1;
+      dragIndex=-1;
+      document.getElementById('curveInVal').textContent='—';
+      document.getElementById('curveOutVal').textContent='—';
+      drawCurve();
+    });
+
+    // Sélecteur de canaux
+    document.querySelectorAll('.curve-ch-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.curve-ch-btn').forEach(b=>{
+          b.style.background='var(--panel-raised)';
+          b.style.borderColor='var(--border)';
+          b.classList.remove('active');
+        });
+        btn.style.background='var(--panel)';
+        btn.style.borderColor='var(--ink-dim)';
+        btn.classList.add('active');
+        activeCurveChannel=btn.dataset.ch;
+        drawCurve();
+      });
+    });
+
+    // Presets
+    const PRESETS = {
+      linear: [{x:0,y:0},{x:255,y:255}],
+      contrast: [{x:0,y:0},{x:64,y:40},{x:128,y:128},{x:192,y:215},{x:255,y:255}],
+      lift: [{x:0,y:28},{x:128,y:148},{x:255,y:255}],
+      fade: [{x:0,y:30},{x:128,y:138},{x:255,y:225}],
+      brighten: [{x:0,y:0},{x:128,y:165},{x:255,y:255}],
+      darken: [{x:0,y:0},{x:128,y:90},{x:255,y:255}],
+    };
+
+    document.querySelectorAll('.curve-preset').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        curveData[activeCurveChannel].points=JSON.parse(JSON.stringify(PRESETS[btn.dataset.preset]));
+        buildLUT(activeCurveChannel);
+        drawCurve();
+        schedulePreview();
+      });
+    });
+
+    document.getElementById('curvesReset').addEventListener('click',()=>{
+      CURVE_CHANNELS.forEach(ch=>{
+        curveData[ch].points=[{x:0,y:0},{x:255,y:255}];
+        buildLUT(ch);
+      });
+      drawCurve();
+      schedulePreview();
+    });
+
+    // Synchroniser l'affichage avec l'état du toggle
+    document.getElementById('curvesEnabled').addEventListener('change',()=>{schedulePreview();});
+
+    drawCurve();
+    // ======================== FIN COURBES ENGINE ========================
+
+    // ---- accordéon : clic sur le header pour plier/déplier ----
+    document.querySelectorAll('.section-header').forEach((header) => {
+      header.addEventListener('click', (e) => {
+        // Ne pas fermer si on clique directement sur le toggle (interrupteur)
+        if (e.target.classList.contains('filter-toggle')) return;
+        const group = header.closest('.field-group');
+        if (group) group.classList.toggle('collapsed');
+      });
     });
 
     syncToggleStates();
