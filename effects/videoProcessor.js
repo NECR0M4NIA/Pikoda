@@ -29,7 +29,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const os = require('os');
 const sharp = require('sharp');
-const { addFilmGrain, replaceColorSelective } = require('./effects');
+const { applyPipeline } = require('./effects');
 
 const FFMPEG_PATH = 'ffmpeg';   // ou require('ffmpeg-static') si tu l'embarques
 const FFPROBE_PATH = 'ffprobe'; // idem, voir le package ffprobe-static
@@ -83,19 +83,12 @@ async function extractFrames(inputPath, framesDir) {
   ]);
 }
 
-async function processFrame(framePath, options) {
+async function processFrame(framePath, settings) {
   const image = sharp(framePath);
   const { data, info } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width, height } = info;
 
-  if (options.colorSwaps) {
-    for (const swap of options.colorSwaps) {
-      replaceColorSelective(data, width, height, swap.target, swap.replacement, swap.options || {});
-    }
-  }
-  if (options.grain) {
-    addFilmGrain(data, width, height, options.grain);
-  }
+  applyPipeline(data, width, height, settings);
 
   await sharp(data, { raw: { width, height, channels: 4 } }).toFile(framePath);
 }
@@ -103,13 +96,13 @@ async function processFrame(framePath, options) {
 /**
  * Traite toutes les frames d'un dossier, par lots, pour ne pas saturer la RAM/CPU.
  */
-async function processAllFrames(framesDir, options, concurrency = os.cpus().length) {
+async function processAllFrames(framesDir, settings, concurrency = os.cpus().length) {
   const files = (await fs.readdir(framesDir)).filter(f => f.endsWith('.png')).sort();
   let i = 0;
   async function worker() {
     while (i < files.length) {
       const idx = i++;
-      await processFrame(path.join(framesDir, files[idx]), options);
+      await processFrame(path.join(framesDir, files[idx]), settings);
     }
   }
   await Promise.all(Array.from({ length: concurrency }, worker));
@@ -135,10 +128,10 @@ async function reassembleVideo(framesDir, fps, originalInputPath, outputPath) {
 /**
  * @param {string} inputPath
  * @param {string} outputPath
- * @param {object} options  même format que pour processImage (grain, colorSwaps)
+ * @param {object} settings  voir applyPipeline dans effects.js
  * @param {function} [onProgress]  callback({ stage, current, total })
  */
-async function processVideo(inputPath, outputPath, options = {}, onProgress = () => {}) {
+async function processVideo(inputPath, outputPath, settings = {}, onProgress = () => {}) {
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'film-look-'));
   const framesDir = path.join(workDir, 'frames');
   try {
@@ -149,7 +142,7 @@ async function processVideo(inputPath, outputPath, options = {}, onProgress = ()
     await extractFrames(inputPath, framesDir);
 
     onProgress({ stage: 'traitement' });
-    const total = await processAllFrames(framesDir, options);
+    const total = await processAllFrames(framesDir, settings);
     onProgress({ stage: 'traitement', current: total, total });
 
     onProgress({ stage: 'assemblage' });

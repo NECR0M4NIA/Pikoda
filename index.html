@@ -1,569 +1,1161 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-<meta charset="UTF-8" />
-<title>Pikado — labo argentique</title>
-<style>
-  :root {
-    --bg: #1c1814;
-    --panel: #241f18;
-    --panel-raised: #2c251c;
-    --ink: #ece3d3;
-    --ink-dim: #9c9180;
-    --safelight: #c2452b;
-    --safelight-dim: #7a3526;
-    --teal: #4f7268;
-    --border: #3a3226;
-    --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
-    --sans: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  }
+  <meta charset="UTF-8" />
+  <title>Pikado</title>
+  <style>
+    :root {
+      --bg: #1c1814;
+      --panel: #241f18;
+      --panel-raised: #2c251c;
+      --ink: #ece3d3;
+      --ink-dim: #9c9180;
+      --safelight: #c2452b;
+      --safelight-dim: #7a3526;
+      --teal: #4f7268;
+      --border: #3a3226;
+      --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+      --sans: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
 
-  * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: var(--sans);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
-  /* ---------- en-tête ---------- */
-  header {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  header .logo {
-    font-family: var(--mono);
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    font-size: 14px;
-  }
-  header .logo span { color: var(--safelight); }
-  header .tagline {
-    font-size: 12px;
-    color: var(--ink-dim);
-    font-family: var(--mono);
-  }
+    /* ---------- en-tête ---------- */
+    header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
 
-  /* ---------- corps : aperçu + panneau de réglages ---------- */
-  main {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    min-height: 0;
-  }
+    header .logo {
+      font-family: var(--mono);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      font-size: 14px;
+    }
 
-  .stage {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background:
-      radial-gradient(ellipse at center, rgba(255,255,255,0.03), transparent 70%),
-      var(--bg);
-    padding: 24px;
-  }
+    header .logo span {
+      color: var(--safelight);
+    }
 
-  .dropzone {
-    width: 100%;
-    height: 100%;
-    border: 1px dashed var(--border);
-    border-radius: 2px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .dropzone:hover, .dropzone.drag-over {
-    border-color: var(--safelight-dim);
-    background: rgba(194, 69, 43, 0.04);
-  }
-  .dropzone .icon { font-size: 13px; font-family: var(--mono); color: var(--ink-dim); letter-spacing: 0.08em; }
-  .dropzone .hint { font-size: 12px; color: var(--ink-dim); }
+    header .tagline {
+      font-size: 12px;
+      color: var(--ink-dim);
+      font-family: var(--mono);
+    }
 
-  .preview-wrap {
-    width: 100%;
-    height: 100%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-  }
-  .preview-wrap.active { display: flex; }
-  .preview-wrap img, .preview-wrap video {
-    max-width: 100%;
-    max-height: 100%;
-    box-shadow: 0 0 0 1px var(--border), 0 20px 50px rgba(0,0,0,0.5);
-  }
+    /* ---------- corps : aperçu + panneau de réglages ---------- */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      min-height: 0;
+    }
 
-  .swap-btn {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-dim);
-    background: var(--panel);
-    border: 1px solid var(--border);
-    padding: 6px 10px;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-  }
-  .swap-btn:hover { color: var(--ink); border-color: var(--ink-dim); }
+    .stage {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(ellipse at center, rgba(255, 255, 255, 0.03), transparent 70%),
+        var(--bg);
+      padding: 24px;
+    }
 
-  /* ---------- panneau de réglages ---------- */
-  aside {
-    background: var(--panel);
-    border-left: 1px solid var(--border);
-    overflow-y: auto;
-    padding: 18px 18px 90px;
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-  }
+    .dropzone {
+      width: 100%;
+      height: 100%;
+      border: 1px dashed var(--border);
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
 
-  .field-group label.section {
-    display: block;
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    color: var(--ink-dim);
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
+    .dropzone:hover,
+    .dropzone.drag-over {
+      border-color: var(--safelight-dim);
+      background: rgba(194, 69, 43, 0.04);
+    }
 
-  select, input[type="text"] {
-    width: 100%;
-    background: var(--panel-raised);
-    border: 1px solid var(--border);
-    color: var(--ink);
-    font-family: var(--sans);
-    font-size: 13px;
-    padding: 8px 10px;
-    border-radius: 2px;
-  }
+    .dropzone .icon {
+      font-size: 13px;
+      font-family: var(--mono);
+      color: var(--ink-dim);
+      letter-spacing: 0.08em;
+    }
 
-  .color-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-  }
-  .color-row .arrow { color: var(--ink-dim); font-family: var(--mono); }
-  .color-row label {
-    font-size: 12px;
-    color: var(--ink-dim);
-    display: block;
-    margin-bottom: 4px;
-  }
-  input[type="color"] {
-    width: 44px;
-    height: 32px;
-    border: 1px solid var(--border);
-    background: none;
-    border-radius: 2px;
-    cursor: pointer;
-    padding: 0;
-  }
+    .dropzone .hint {
+      font-size: 12px;
+      color: var(--ink-dim);
+    }
 
-  .slider-row { margin-top: 12px; }
-  .slider-row .slider-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--ink-dim);
-    margin-bottom: 6px;
-    font-family: var(--mono);
-  }
-  input[type="range"] {
-    width: 100%;
-    accent-color: var(--teal);
-  }
+    .preview-wrap {
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
 
-  .checkbox-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-    font-size: 13px;
-    color: var(--ink-dim);
-  }
-  .checkbox-row input { accent-color: var(--teal); }
+    .preview-wrap.active {
+      display: flex;
+    }
 
-  .divider { border-top: 1px solid var(--border); margin: 0; }
+    .preview-wrap canvas,
+    .preview-wrap video {
+      max-width: 100%;
+      max-height: 100%;
+      box-shadow: 0 0 0 1px var(--border), 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
 
-  .export-btn {
-    width: 100%;
-    background: var(--safelight);
-    color: #1c1814;
-    border: none;
-    font-family: var(--mono);
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 0.08em;
-    padding: 12px;
-    border-radius: 2px;
-    cursor: pointer;
-    text-transform: uppercase;
-  }
-  .export-btn:hover { background: #d6502f; }
-  .export-btn:disabled { background: var(--safelight-dim); color: var(--ink-dim); cursor: not-allowed; }
+    .preview-wrap canvas {
+      transform-origin: center center;
+      /* Ou laisse par défaut */
+      transition: transform 0.05s ease-out;
+      /* Optionnel : fluidifie le mouvement */
+      cursor: default;
+    }
 
-  /* ---------- bandeau pellicule (signature + progression) ---------- */
-  .filmstrip {
-    position: relative;
-    height: 46px;
-    background: #0f0d0a;
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-  .filmstrip .sprockets {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 6px;
-  }
-  .filmstrip .sprockets::before,
-  .filmstrip .sprockets::after { content: none; }
-  .sprocket-row {
-    position: absolute;
-    top: 6px;
-    left: 0;
-    right: 0;
-    height: 6px;
-    display: flex;
-    gap: 14px;
-    padding: 0 10px;
-  }
-  .sprocket-row.bottom { top: auto; bottom: 6px; }
-  .sprocket-row span {
-    width: 6px;
-    height: 6px;
-    background: var(--border);
-    border-radius: 1px;
-    flex-shrink: 0;
-  }
-  .filmstrip-fill {
-    position: absolute;
-    top: 0; bottom: 0; left: 0;
-    width: 0%;
-    background: linear-gradient(90deg, var(--safelight-dim), var(--safelight));
-    transition: width 0.25s ease;
-    opacity: 0.35;
-  }
-  .filmstrip-status {
-    position: relative;
-    z-index: 2;
-    margin: 0 auto;
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    color: var(--ink-dim);
-    text-transform: uppercase;
-  }
-  .filmstrip-status.active { color: var(--ink); }
+    .swap-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-dim);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+    }
 
-</style>
+    .swap-btn:hover {
+      color: var(--ink);
+      border-color: var(--ink-dim);
+    }
+
+    /* ---------- panneau de réglages ---------- */
+    aside * {
+      will-change: transform;
+    }
+
+    aside {
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 18px 18px 90px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: var(--panel-raised) var(--panel);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    aside::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    /* 2. Le fond de la piste (Track) */
+    aside::-webkit-scrollbar-track {
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+    }
+
+    /* 3. La barre cliquable (Thumb) */
+    aside::-webkit-scrollbar-thumb {
+      background: var(--panel-raised);
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    /* 4. Effet au survol sur la barre cliquable */
+    aside::-webkit-scrollbar-thumb:hover {
+      background: var(--ink-dim);
+      border-color: var(--ink-dim);
+    }
+
+    .field-group label.section {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-header label.section {
+      margin-bottom: 0;
+    }
+
+    /* interrupteur activer/désactiver un filtre, façon contacteur de boîtier */
+    .filter-toggle {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 32px;
+      height: 17px;
+      background: var(--panel-raised);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      position: relative;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin: 0 0 10px;
+    }
+
+    .filter-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 11px;
+      height: 11px;
+      background: var(--ink-dim);
+      border-radius: 1px;
+      transition: left 0.15s, background 0.15s;
+    }
+
+    .filter-toggle:checked {
+      background: var(--safelight-dim);
+      border-color: var(--safelight);
+    }
+
+    .filter-toggle:checked::after {
+      left: 17px;
+      background: var(--ink);
+    }
+
+    .field-group .section-body {
+      transition: opacity 0.15s;
+    }
+
+    .field-group.disabled .section-body {
+      opacity: 0.32;
+      pointer-events: none;
+    }
+
+    select,
+    input[type="text"] {
+      width: 100%;
+      background: var(--panel-raised);
+      border: 1px solid var(--border);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 13px;
+      padding: 8px 10px;
+      border-radius: 2px;
+    }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .color-row .arrow {
+      color: var(--ink-dim);
+      font-family: var(--mono);
+    }
+
+    .color-row label {
+      font-size: 12px;
+      color: var(--ink-dim);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input[type="color"] {
+      width: 44px;
+      height: 32px;
+      border: 1px solid var(--border);
+      background: none;
+      border-radius: 2px;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .slider-row {
+      margin-top: 12px;
+    }
+
+    .slider-row .slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--ink-dim);
+      margin-bottom: 6px;
+      font-family: var(--mono);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--teal);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--ink-dim);
+    }
+
+    .checkbox-row input {
+      accent-color: var(--teal);
+    }
+
+    .divider {
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    .export-btn {
+      width: 100%;
+      background: var(--safelight);
+      color: #1c1814;
+      border: none;
+      outline-offset: 0;
+      transition: all 250ms ease;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      padding: 12px;
+      border-radius: 2px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    .export-btn:hover {
+      background: #d6502f;
+      outline: 2px solid rgba(255, 255, 255, 0.15);
+      outline-offset: 0.25em;
+    }
+
+    .export-btn:disabled {
+      background: var(--safelight-dim);
+      color: var(--ink-dim);
+      cursor: not-allowed;
+    }
+
+    /* ---------- bandeau pellicule (signature + progression) ---------- */
+    .filmstrip {
+      position: relative;
+      height: 46px;
+      background: #0f0d0a;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .filmstrip .sprockets {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 6px;
+    }
+
+    .filmstrip .sprockets::before,
+    .filmstrip .sprockets::after {
+      content: none;
+    }
+
+    .sprocket-row {
+      position: absolute;
+      top: 6px;
+      left: 0;
+      right: 0;
+      height: 6px;
+      display: flex;
+      gap: 14px;
+      padding: 0 10px;
+    }
+
+    .sprocket-row.bottom {
+      top: auto;
+      bottom: 6px;
+    }
+
+    .sprocket-row span {
+      width: 6px;
+      height: 6px;
+      background: var(--border);
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+
+    .filmstrip-fill {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 0%;
+      background: linear-gradient(90deg, var(--safelight-dim), var(--safelight));
+      transition: width 0.25s ease;
+      opacity: 0.35;
+    }
+
+    .filmstrip-status {
+      position: relative;
+      z-index: 2;
+      margin: 0 auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+    }
+
+    .filmstrip-status.active {
+      color: var(--ink);
+    }
+  </style>
 </head>
+
 <body>
 
-<header>
-  <div class="logo">PIKAD<span>O</span></div>
-  <div class="tagline">// labo argentique — grain &amp; teinte</div>
-</header>
+  <header>
+    <div class="logo">PIKAD<span>O</span></div>
+    <div class="tagline">// labo argentique — grain &amp; teinte</div>
+  </header>
 
-<main>
-  <div class="stage">
-    <div class="dropzone" id="dropzone">
-      <div class="icon">[ AUCUNE PELLICULE CHARGÉE ]</div>
-      <div class="hint">Clique ou glisse une photo / vidéo ici</div>
+  <main>
+    <div class="stage">
+      <div class="dropzone" id="dropzone">
+        <div class="icon">[ AUCUNE PELLICULE CHARGÉE ]</div>
+        <div class="hint">Clique ou glisse une photo / vidéo ici</div>
+      </div>
+      <div class="preview-wrap" id="previewWrap">
+        <canvas id="previewCanvas" style="display:none"></canvas>
+        <video id="previewVideo" style="display:none" controls></video>
+        <button class="swap-btn" id="changeFileBtn">CHANGER DE FICHIER</button>
+      </div>
     </div>
-    <div class="preview-wrap" id="previewWrap">
-      <img id="previewImg" style="display:none" />
-      <video id="previewVideo" style="display:none" controls></video>
-      <button class="swap-btn" id="changeFileBtn">CHANGER DE FICHIER</button>
-    </div>
+
+    <aside>
+      <div class="field-group">
+        <label class="section">Recette</label>
+        <select id="recipeSelect">
+          <option value="custom">— Réglage manuel —</option>
+          <option value="rougeBleu">Rouge sanglant → Bleu marine</option>
+          <option value="oliveBordeaux">Vert olive → Bordeaux</option>
+          <option value="sepiaDoux">Sépia doux</option>
+        </select>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-group" id="group-exposure">
+        <div class="section-header">
+          <label class="section">Exposition</label>
+          <input type="checkbox" class="filter-toggle live-control" id="exposureEnabled" />
+        </div>
+        <div class="section-body">
+          <div class="slider-row">
+            <div class="slider-label"><span>Stops</span><span id="exposureVal">0.0</span></div>
+            <input type="range" class="live-control" id="exposureStops" min="-3" max="3" step="0.1" value="0" />
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-group" id="group-levels">
+        <div class="section-header">
+          <label class="section">Niveaux</label>
+          <input type="checkbox" class="filter-toggle live-control" id="levelsEnabled" />
+        </div>
+        <div class="section-body">
+          <div class="slider-row">
+            <div class="slider-label"><span>Point noir</span><span id="inputBlackVal">0</span></div>
+            <input type="range" class="live-control" id="inputBlack" min="0" max="254" value="0" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-label"><span>Point blanc</span><span id="inputWhiteVal">255</span></div>
+            <input type="range" class="live-control" id="inputWhite" min="1" max="255" value="255" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-label"><span>Gamma (tons moyens)</span><span id="gammaVal">1.00</span></div>
+            <input type="range" class="live-control" id="gamma" min="0.1" max="3" step="0.05" value="1" />
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-group" id="group-contrast">
+        <div class="section-header">
+          <label class="section">Contraste</label>
+          <input type="checkbox" class="filter-toggle live-control" id="contrastEnabled" />
+        </div>
+        <div class="section-body">
+          <div class="slider-row">
+            <div class="slider-label"><span>Quantité</span><span id="contrastVal">0</span></div>
+            <input type="range" class="live-control" id="contrastAmount" min="-100" max="100" value="0" />
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-group" id="group-saturation">
+        <div class="section-header">
+          <label class="section">Saturation</label>
+          <input type="checkbox" class="filter-toggle live-control" id="saturationEnabled" />
+        </div>
+        <div class="section-body">
+          <div class="slider-row">
+            <div class="slider-label"><span>Quantité</span><span id="saturationVal">0</span></div>
+            <input type="range" class="live-control" id="saturationAmount" min="-100" max="100" value="0" />
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-group" id="group-colorSwap">
+        <div class="section-header">
+          <label class="section">Teinte ciblée</label>
+          <input type="checkbox" class="filter-toggle live-control" id="colorSwapEnabled" />
+        </div>
+        <div class="section-body">
+          <div class="color-row">
+            <div>
+              <label>Couleur cible</label>
+              <input type="color" class="live-control" id="targetColor" value="#8b0000" />
+            </div>
+            <div class="arrow">→</div>
+            <div>
+              <label>Remplacement</label>
+              <input type="color" class="live-control" id="replacementColor" value="#000080" />
+            </div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-label"><span>Plage de teinte</span><span id="hueRangeVal">15°</span></div>
+            <input type="range" class="live-control" id="hueRange" min="2" max="60" value="15" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-label"><span>Dégradé des bords</span><span id="featherVal">8°</span></div>
+            <input type="range" class="live-control" id="feather" min="0" max="40" value="8" />
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-group" id="group-grain">
+        <div class="section-header">
+          <label class="section">Grain</label>
+          <input type="checkbox" class="filter-toggle live-control" id="grainEnabled" />
+        </div>
+        <div class="section-body">
+          <div class="slider-row">
+            <div class="slider-label"><span>Intensité</span><span id="grainIntensityVal">18</span></div>
+            <input type="range" class="live-control" id="grainIntensity" min="0" max="60" value="18" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-label"><span>Taille du grain</span><span id="grainSizeVal">1px</span></div>
+            <input type="range" class="live-control" id="grainSize" min="1" max="4" value="1" />
+          </div>
+          <div class="checkbox-row">
+            <input type="checkbox" class="live-control" id="grainMono" checked />
+            <label for="grainMono">Grain monochrome (look pellicule classique)</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-group" id="group-lut">
+        <div class="section-header">
+          <label class="section">LUT Cinéma (.cube)</label>
+          <input type="checkbox" class="filter-toggle live-control" id="lutEnabled" />
+        </div>
+        <div class="section-body">
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+            <input type="file" id="lutInput" accept=".cube" style="display: none;" />
+            <button type="button" class="swap-btn" id="lutSelectBtn" style="position: static; width: 100%;">
+              CHARGER UNE LUT
+            </button>
+            <div id="lutName"
+              style="font-size: 11px; font-family: var(--mono); color: var(--ink-dim); text-align: center; word-break: break-all;">
+              Aucune LUT chargée
+            </div>
+
+            <div class="control-row">
+              <label>Intensité</label>
+              <div class="slider-container">
+                <input type="range" id="lutIntensity" class="live-control" min="0" max="100" value="100" />
+                <span class="value-display" id="lutIntensityVal">100%</span>
+              </div>
+            </div>
+
+            <div class="control-row" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+              <label>Ordre des axes (Grille 3D)</label>
+              <select id="lutLayout" class="live-control"
+                style="width: 100%; background: var(--panel-raised); color: var(--ink); border: 1px solid var(--border); padding: 4px; font-family: var(--sans); font-size: 12px;">
+                <option value="RGB">Standard (R -> G -> B)</option>
+                <option value="BGR">Inversé (B -> G -> R)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="export-btn" id="exportBtn" disabled>Exporter</button>
+    </aside>
+  </main>
+
+  <div class="filmstrip">
+    <div class="filmstrip-fill" id="filmstripFill"></div>
+    <div class="sprocket-row" id="sprocketTop"></div>
+    <div class="filmstrip-status" id="status">Aucun fichier — chargez une photo ou une vidéo</div>
+    <div class="sprocket-row bottom" id="sprocketBottom"></div>
   </div>
 
-  <aside>
-    <div class="field-group">
-      <label class="section">Recette</label>
-      <select id="recipeSelect">
-        <option value="custom">— Réglage manuel —</option>
-        <option value="rougeBleu">Rouge sanglant → Bleu marine</option>
-        <option value="oliveBordeaux">Vert olive → Bordeaux</option>
-        <option value="sepiaDoux">Sépia doux</option>
-      </select>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="field-group">
-      <label class="section">Teinte ciblée</label>
-      <div class="color-row">
-        <div>
-          <label>Couleur cible</label>
-          <input type="color" id="targetColor" value="#8b0000" />
-        </div>
-        <div class="arrow">→</div>
-        <div>
-          <label>Remplacement</label>
-          <input type="color" id="replacementColor" value="#000080" />
-        </div>
-      </div>
-
-      <div class="slider-row">
-        <div class="slider-label"><span>Plage de teinte</span><span id="hueRangeVal">15°</span></div>
-        <input type="range" id="hueRange" min="2" max="60" value="15" />
-      </div>
-      <div class="slider-row">
-        <div class="slider-label"><span>Dégradé des bords</span><span id="featherVal">8°</span></div>
-        <input type="range" id="feather" min="0" max="40" value="8" />
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="field-group">
-      <label class="section">Grain</label>
-      <div class="slider-row">
-        <div class="slider-label"><span>Intensité</span><span id="grainIntensityVal">18</span></div>
-        <input type="range" id="grainIntensity" min="0" max="60" value="18" />
-      </div>
-      <div class="slider-row">
-        <div class="slider-label"><span>Taille du grain</span><span id="grainSizeVal">1px</span></div>
-        <input type="range" id="grainSize" min="1" max="4" value="1" />
-      </div>
-      <div class="checkbox-row">
-        <input type="checkbox" id="grainMono" checked />
-        <label for="grainMono">Grain monochrome (look pellicule classique)</label>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <button class="export-btn" id="exportBtn" disabled>Exporter</button>
-  </aside>
-</main>
-
-<div class="filmstrip">
-  <div class="filmstrip-fill" id="filmstripFill"></div>
-  <div class="sprocket-row" id="sprocketTop"></div>
-  <div class="filmstrip-status" id="status">Aucun fichier — chargez une photo ou une vidéo</div>
-  <div class="sprocket-row bottom" id="sprocketBottom"></div>
-</div>
-
-<script>
-  // ---- génère les perforations de la pellicule (décor) ----
-  function fillSprockets(el, count) {
-    el.innerHTML = '';
-    for (let i = 0; i < count; i++) {
-      const s = document.createElement('span');
-      el.appendChild(s);
-    }
-  }
-  fillSprockets(document.getElementById('sprocketTop'), 40);
-  fillSprockets(document.getElementById('sprocketBottom'), 40);
-
-  // ---- état ----
-  let currentFilePath = null;
-  let currentFileType = null; // 'image' | 'video'
-
-  const dropzone = document.getElementById('dropzone');
-  const previewWrap = document.getElementById('previewWrap');
-  const previewImg = document.getElementById('previewImg');
-  const previewVideo = document.getElementById('previewVideo');
-  const changeFileBtn = document.getElementById('changeFileBtn');
-  const exportBtn = document.getElementById('exportBtn');
-  const statusEl = document.getElementById('status');
-  const fillEl = document.getElementById('filmstripFill');
-
-  const IMAGE_EXT = ['.jpg', '.jpeg', '.png', '.webp', '.tiff'];
-  const VIDEO_EXT = ['.mp4', '.mov', '.mkv', '.avi', '.webm'];
-
-  function guessType(filePath) {
-    const ext = filePath.slice(filePath.lastIndexOf('.')).toLowerCase();
-    if (IMAGE_EXT.includes(ext)) return 'image';
-    if (VIDEO_EXT.includes(ext)) return 'video';
-    return null;
-  }
-
-  function setStatus(text, active = false) {
-    statusEl.textContent = text;
-    statusEl.classList.toggle('active', active);
-  }
-
-  function loadFile(filePath) {
-    const type = guessType(filePath);
-    if (!type) {
-      setStatus('Format non reconnu — choisis une image ou une vidéo');
-      return;
-    }
-    currentFilePath = filePath;
-    currentFileType = type;
-
-    dropzone.style.display = 'none';
-    previewWrap.classList.add('active');
-    const fileUrl = 'file://' + filePath.replace(/\\/g, '/');
-
-    if (type === 'image') {
-      previewVideo.style.display = 'none';
-      previewImg.style.display = 'block';
-      previewImg.src = fileUrl;
-    } else {
-      previewImg.style.display = 'none';
-      previewVideo.style.display = 'block';
-      previewVideo.src = fileUrl;
-    }
-
-    exportBtn.disabled = false;
-    setStatus(`Chargé : ${filePath.split(/[\\/]/).pop()}`);
-  }
-
-  // ---- ouverture via la boîte de dialogue native (la méthode la plus fiable) ----
-  async function pickFile() {
-    const filePath = await window.filmLook.selectFile();
-    if (filePath) loadFile(filePath);
-  }
-  dropzone.addEventListener('click', pickFile);
-  changeFileBtn.addEventListener('click', pickFile);
-
-  // ---- glisser-déposer ----
-  ['dragover', 'dragleave', 'drop'].forEach(evt => {
-    dropzone.addEventListener(evt, (e) => e.preventDefault());
-  });
-  dropzone.addEventListener('dragover', () => dropzone.classList.add('drag-over'));
-  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
-  dropzone.addEventListener('drop', (e) => {
-    dropzone.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-    // Electron 32+ : le chemin réel d'un File ne passe plus par .path,
-    // il faut webUtils.getPathForFile (exposé via preload).
-    const filePath = window.filmLook.getPathForFile(file);
-    if (filePath) loadFile(filePath);
-  });
-
-  // ---- recettes prédéfinies ----
-  const RECIPES = {
-    rougeBleu:     { target: '#8b0000', replacement: '#000080', hueRange: 15, feather: 8, grainIntensity: 18, grainSize: 1, grainMono: true },
-    oliveBordeaux: { target: '#808000', replacement: '#660015', hueRange: 18, feather: 10, grainIntensity: 22, grainSize: 1, grainMono: true },
-    sepiaDoux:     { target: '#ffffff', replacement: '#70421a', hueRange: 40, feather: 20, grainIntensity: 12, grainSize: 1, grainMono: true },
-  };
-
-  document.getElementById('recipeSelect').addEventListener('change', (e) => {
-    const recipe = RECIPES[e.target.value];
-    if (!recipe) return;
-    document.getElementById('targetColor').value = recipe.target;
-    document.getElementById('replacementColor').value = recipe.replacement;
-    document.getElementById('hueRange').value = recipe.hueRange;
-    document.getElementById('feather').value = recipe.feather;
-    document.getElementById('grainIntensity').value = recipe.grainIntensity;
-    document.getElementById('grainSize').value = recipe.grainSize;
-    document.getElementById('grainMono').checked = recipe.grainMono;
-    syncSliderLabels();
-  });
-
-  // ---- affichage live des valeurs de sliders ----
-  function syncSliderLabels() {
-    document.getElementById('hueRangeVal').textContent = document.getElementById('hueRange').value + '°';
-    document.getElementById('featherVal').textContent = document.getElementById('feather').value + '°';
-    document.getElementById('grainIntensityVal').textContent = document.getElementById('grainIntensity').value;
-    document.getElementById('grainSizeVal').textContent = document.getElementById('grainSize').value + 'px';
-  }
-  ['hueRange', 'feather', 'grainIntensity', 'grainSize'].forEach(id => {
-    document.getElementById(id).addEventListener('input', syncSliderLabels);
-  });
-
-  function hexToRgb(hex) {
-    const v = parseInt(hex.slice(1), 16);
-    return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
-  }
-
-  function buildOptions() {
-    return {
-      colorSwaps: [{
-        target: hexToRgb(document.getElementById('targetColor').value),
-        replacement: hexToRgb(document.getElementById('replacementColor').value),
-        options: {
-          hueRange: Number(document.getElementById('hueRange').value),
-          feather: Number(document.getElementById('feather').value),
-        },
-      }],
-      grain: {
-        intensity: Number(document.getElementById('grainIntensity').value),
-        size: Number(document.getElementById('grainSize').value),
-        monochrome: document.getElementById('grainMono').checked,
-      },
-    };
-  }
-
-  function buildOutputPath(inputPath) {
-    const dot = inputPath.lastIndexOf('.');
-    return inputPath.slice(0, dot) + '-argentique' + inputPath.slice(dot);
-  }
-
-  // ---- progression vidéo (alimente le bandeau pellicule) ----
-  window.filmLook.onVideoProgress((progress) => {
-    const stageLabels = {
-      analyse: 'Analyse de la vidéo…',
-      extraction: 'Extraction des frames…',
-      traitement: progress.total
-        ? `Traitement des frames… ${progress.current}/${progress.total}`
-        : 'Traitement des frames…',
-      assemblage: 'Réassemblage de la vidéo…',
-      'terminé': 'Export terminé ✓',
-    };
-    setStatus(stageLabels[progress.stage] || progress.stage, true);
-    if (progress.stage === 'traitement' && progress.total) {
-      fillEl.style.width = `${(progress.current / progress.total) * 100}%`;
-    } else if (progress.stage === 'terminé') {
-      fillEl.style.width = '100%';
-    }
-  });
-
-  // ---- export ----
-  exportBtn.addEventListener('click', async () => {
-    if (!currentFilePath) return;
-    exportBtn.disabled = true;
-    fillEl.style.width = '0%';
-    const outputPath = buildOutputPath(currentFilePath);
-    const options = buildOptions();
-
-    try {
-      if (currentFileType === 'image') {
-        setStatus('Traitement de l\'image…', true);
-        fillEl.style.width = '60%';
-        await window.filmLook.processImage({ inputPath: currentFilePath, outputPath, options });
-        fillEl.style.width = '100%';
-        setStatus('Export terminé ✓ — ' + outputPath, true);
-      } else {
-        await window.filmLook.processVideo({ inputPath: currentFilePath, outputPath, options });
+  <script>
+    // ---- génère les perforations de la pellicule (décor) ----
+    function fillSprockets(el, count) {
+      el.innerHTML = '';
+      for (let i = 0; i < count; i++) {
+        const s = document.createElement('span');
+        el.appendChild(s);
       }
-    } catch (err) {
-      setStatus('Erreur : ' + err.message, true);
-      console.error(err);
-    } finally {
-      exportBtn.disabled = false;
     }
-  });
+    fillSprockets(document.getElementById('sprocketTop'), 40);
+    fillSprockets(document.getElementById('sprocketBottom'), 40);
 
-  syncSliderLabels();
-</script>
+    // ---- état ----
+    let currentFilePath = null;
+    let currentFileType = null; // 'image' | 'video'
+    let originalImageData = null; // pixels "propres" de l'image chargée, jamais modifiés directement
+    let origWidth = 0;
+    let origHeight = 0;
+    let zoomScale = 1;
+    const MIN_ZOOM = 0.5;
+    const MAX_ZOOM = 5;
+    let isPanning = false;
+    let startX = 0, startY = 0;
+    let translateX = 0, translateY = 0;
+    let currentLutData = null;
+
+    const dropzone = document.getElementById('dropzone');
+    const previewWrap = document.getElementById('previewWrap');
+    const previewCanvas = document.getElementById('previewCanvas');
+    const previewVideo = document.getElementById('previewVideo');
+    const changeFileBtn = document.getElementById('changeFileBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const statusEl = document.getElementById('status');
+    const fillEl = document.getElementById('filmstripFill');
+    const lutIntensity = document.getElementById('lutIntensity');
+    const lutIntensityVal = document.getElementById('lutIntensityVal')
+
+    const IMAGE_EXT = ['.jpg', '.jpeg', '.png', '.webp', '.tiff'];
+    const VIDEO_EXT = ['.mp4', '.mov', '.mkv', '.avi', '.webm'];
+
+    function guessType(filePath) {
+      const ext = filePath.slice(filePath.lastIndexOf('.')).toLowerCase();
+      if (IMAGE_EXT.includes(ext)) return 'image';
+      if (VIDEO_EXT.includes(ext)) return 'video';
+      return null;
+    }
+
+    function setStatus(text, active = false) {
+      statusEl.textContent = text;
+      statusEl.classList.toggle('active', active);
+    }
+
+    function loadFile(filePath) {
+      const type = guessType(filePath);
+      if (!type) {
+        setStatus('Format non reconnu — choisis une image ou une vidéo');
+        return;
+      }
+      currentFilePath = filePath;
+      currentFileType = type;
+
+      dropzone.style.display = 'none';
+      previewWrap.classList.add('active');
+      const fileUrl = 'file://' + filePath.replace(/\\/g, '/');
+
+      if (type === 'image') {
+        previewVideo.style.display = 'none';
+
+        const img = new Image();
+        img.onload = () => {
+          // on plafonne la résolution de preview pour que le recalcul reste
+          // instantané pendant qu'on bouge les sliders ; l'export final, lui,
+          // repart toujours du fichier original en pleine résolution.
+          const maxSide = 1000;
+          const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.round(img.naturalWidth * scale);
+          const h = Math.round(img.naturalHeight * scale);
+          // Réinitialiser le zoom et le déplacement
+          zoomScale = 1;
+          translateX = 0;
+          translateY = 0;
+          isPanning = false;
+          updateCanvasTransform();
+
+          // Gestion du zoom à la molette
+          previewCanvas.removeEventListener('wheel', handleWheelZoom);
+          previewCanvas.addEventListener('wheel', handleWheelZoom, { passive: false });
+
+          // Gestion du déplacement (clic molette)
+          previewCanvas.removeEventListener('mousedown', startPan);
+          previewCanvas.addEventListener('mousedown', startPan);
+
+          window.removeEventListener('mousemove', movePan);
+          window.addEventListener('mousemove', movePan);
+
+          window.removeEventListener('mouseup', stopPan);
+          window.addEventListener('mouseup', stopPan);
+
+          previewCanvas.width = w;
+          previewCanvas.height = h;
+          previewCanvas.style.display = 'block';
+
+          const ctx = previewCanvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+
+          originalImageData = new Uint8ClampedArray(ctx.getImageData(0, 0, w, h).data);
+          origWidth = w;
+          origHeight = h;
+
+          renderPreview();
+        };
+        img.src = fileUrl;
+        zoomScale = 1;
+        previewCanvas.style.transform = `scale(${zoomScale})`;
+
+        // Gestion du zoom à la molette
+        previewCanvas.removeEventListener('wheel', handleWheelZoom);
+        previewCanvas.addEventListener('wheel', handleWheelZoom, { passive: false });
+      } else {
+        previewCanvas.style.display = 'none';
+        previewVideo.style.display = 'block';
+        previewVideo.src = fileUrl;
+      }
+
+      exportBtn.disabled = false;
+      setStatus(`Chargé : ${filePath.split(/[\\/]/).pop()}`);
+    }
+
+    // ---- aperçu live (image uniquement pour l'instant) ----
+    function renderPreview() {
+      if (currentFileType !== 'image' || !originalImageData) return;
+      const ctx = previewCanvas.getContext('2d');
+      const options = buildOptions();
+
+      // 1. Applique tes effets de base (exposition, grain, etc.)
+      let result = window.filmLook.applyEffects(originalImageData, origWidth, origHeight, options);
+
+      // Dans la fonction renderPreview()
+      const lutEnabled = document.getElementById('lutEnabled').checked;
+      if (lutEnabled && currentLutData) {
+        const intensity = parseFloat(document.getElementById('lutIntensity').value) / 100;
+        const layout = document.getElementById('lutLayout').value;
+
+        for (let i = 0; i < result.length; i += 4) {
+          const origR = result[i];
+          const origG = result[i + 1];
+          const origB = result[i + 2];
+
+          // Calcul du pixel transformé par la LUT
+          const lutRgb = applyLutToPixel(origR, origG, origB, currentLutData, layout);
+
+          // Mélange (Mix) entre l'original et la LUT selon l'intensité désirée
+          result[i] = origR + (lutRgb.r - origR) * intensity;
+          result[i + 1] = origG + (lutRgb.g - origG) * intensity;
+          result[i + 2] = origB + (lutRgb.b - origB) * intensity;
+        }
+      }
+
+      const imageData = new ImageData(new Uint8ClampedArray(result), origWidth, origHeight);
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function updateCanvasTransform() {
+      // IMPORTANT : On applique d'abord la translation, puis le scale pour un comportement naturel
+      previewCanvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomScale})`;
+    }
+
+    function handleWheelZoom(e) {
+      e.preventDefault(); // Empêche la page entière de scroller
+
+      // Détermine la direction du zoom (e.deltaY < 0 signifie qu'on roule vers le haut = zoom)
+      const zoomIntensity = 0.1;
+      if (e.deltaY < 0) {
+        zoomScale += zoomIntensity;
+      } else {
+        zoomScale -= zoomIntensity;
+      }
+
+      // On limite le zoom entre les bornes min et max
+      zoomScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomScale));
+
+      // Applique le zoom en CSS sur le canvas
+      updateCanvasTransform();
+    }
+
+    function startPan(e) {
+      // e.button === 1 correspond au clic de la molette (clic du milieu)
+      if (e.button !== 1) return;
+
+      e.preventDefault(); // Empêche le curseur de défilement auto d'un navigateur classique
+      isPanning = true;
+
+      // On enregistre la position de départ de la souris moins le décalage déjà existant
+      startX = e.clientX - translateX;
+      startY = e.clientY - translateY;
+
+      previewCanvas.style.cursor = 'grabbing';
+    }
+
+    function movePan(e) {
+      if (!isPanning) return;
+
+      // On calcule le nouveau décalage
+      translateX = e.clientX - startX;
+      translateY = e.clientY - startY;
+
+      updateCanvasTransform();
+    }
+
+    function stopPan(e) {
+      if (e.button === 1 && isPanning) {
+        isPanning = false;
+        previewCanvas.style.cursor = 'default';
+      }
+    }
+
+    let rafPending = false;
+    function schedulePreview() {
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(() => { rafPending = false; renderPreview(); });
+    }
+
+    // ---- ouverture via la boîte de dialogue native (la méthode la plus fiable) ----
+    async function pickFile() {
+      const filePath = await window.filmLook.selectFile();
+      if (filePath) loadFile(filePath);
+    }
+    dropzone.addEventListener('click', pickFile);
+    changeFileBtn.addEventListener('click', pickFile);
+
+    // ---- glisser-déposer ----
+    ['dragover', 'dragleave', 'drop'].forEach(evt => {
+      dropzone.addEventListener(evt, (e) => e.preventDefault());
+    });
+    dropzone.addEventListener('dragover', () => dropzone.classList.add('drag-over'));
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', (e) => {
+      dropzone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      // Electron 32+ : le chemin réel d'un File ne passe plus par .path,
+      // il faut webUtils.getPathForFile (exposé via preload).
+      const filePath = window.filmLook.getPathForFile(file);
+      if (filePath) loadFile(filePath);
+    });
+
+    // ---- recettes prédéfinies ----
+    const RECIPES = {
+      rougeBleu: { target: '#8b0000', replacement: '#000080', hueRange: 15, feather: 8, grainIntensity: 18, grainSize: 1, grainMono: true },
+      oliveBordeaux: { target: '#808000', replacement: '#660015', hueRange: 18, feather: 10, grainIntensity: 22, grainSize: 1, grainMono: true },
+      sepiaDoux: { target: '#ffffff', replacement: '#70421a', hueRange: 40, feather: 20, grainIntensity: 12, grainSize: 1, grainMono: true },
+    };
+
+    document.getElementById('recipeSelect').addEventListener('change', (e) => {
+      const recipe = RECIPES[e.target.value];
+      if (!recipe) return;
+      document.getElementById('targetColor').value = recipe.target;
+      document.getElementById('replacementColor').value = recipe.replacement;
+      document.getElementById('hueRange').value = recipe.hueRange;
+      document.getElementById('feather').value = recipe.feather;
+      document.getElementById('grainIntensity').value = recipe.grainIntensity;
+      document.getElementById('grainSize').value = recipe.grainSize;
+      document.getElementById('grainMono').checked = recipe.grainMono;
+      // une recette active toujours sa teinte ciblée + son grain
+      document.getElementById('colorSwapEnabled').checked = true;
+      document.getElementById('grainEnabled').checked = true;
+      syncToggleStates();
+      syncSliderLabels();
+      schedulePreview();
+    });
+
+    // ---- état visuel "désactivé" des sections + recalcul à chaque bascule ----
+    function syncToggleStates() {
+      document.querySelectorAll('.filter-toggle').forEach((toggle) => {
+        toggle.closest('.field-group').classList.toggle('disabled', !toggle.checked);
+      });
+    }
+
+    // ---- affichage live des valeurs de sliders ----
+    function syncSliderLabels() {
+      document.getElementById('exposureVal').textContent = Number(document.getElementById('exposureStops').value).toFixed(1);
+      document.getElementById('inputBlackVal').textContent = document.getElementById('inputBlack').value;
+      document.getElementById('inputWhiteVal').textContent = document.getElementById('inputWhite').value;
+      document.getElementById('gammaVal').textContent = Number(document.getElementById('gamma').value).toFixed(2);
+      document.getElementById('contrastVal').textContent = document.getElementById('contrastAmount').value;
+      document.getElementById('saturationVal').textContent = document.getElementById('saturationAmount').value;
+      document.getElementById('hueRangeVal').textContent = document.getElementById('hueRange').value + '°';
+      document.getElementById('featherVal').textContent = document.getElementById('feather').value + '°';
+      document.getElementById('grainIntensityVal').textContent = document.getElementById('grainIntensity').value;
+      document.getElementById('grainSizeVal').textContent = document.getElementById('grainSize').value + 'px';
+    }
+
+    // ---- branchement générique : tout contrôle marqué .live-control redessine l'aperçu ----
+    document.querySelectorAll('.live-control').forEach((el) => {
+      const evtName = (el.type === 'range' || el.type === 'color') ? 'input' : 'change';
+      el.addEventListener(evtName, () => {
+        if (el.classList.contains('filter-toggle')) syncToggleStates();
+        syncSliderLabels();
+        schedulePreview();
+      });
+    });
+
+    function hexToRgb(hex) {
+      const v = parseInt(hex.slice(1), 16);
+      return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
+    }
+
+    // ---- construit l'objet "settings" attendu par applyPipeline (effects.js) ----
+    function buildOptions() {
+      return {
+        exposure: {
+          enabled: document.getElementById('exposureEnabled').checked,
+          stops: Number(document.getElementById('exposureStops').value),
+        },
+        levels: {
+          enabled: document.getElementById('levelsEnabled').checked,
+          inputBlack: Number(document.getElementById('inputBlack').value),
+          inputWhite: Number(document.getElementById('inputWhite').value),
+          gamma: Number(document.getElementById('gamma').value),
+        },
+        contrast: {
+          enabled: document.getElementById('contrastEnabled').checked,
+          amount: Number(document.getElementById('contrastAmount').value),
+        },
+        saturation: {
+          enabled: document.getElementById('saturationEnabled').checked,
+          amount: Number(document.getElementById('saturationAmount').value),
+        },
+        colorSwaps: {
+          enabled: document.getElementById('colorSwapEnabled').checked,
+          swaps: [{
+            target: hexToRgb(document.getElementById('targetColor').value),
+            replacement: hexToRgb(document.getElementById('replacementColor').value),
+            options: {
+              hueRange: Number(document.getElementById('hueRange').value),
+              feather: Number(document.getElementById('feather').value),
+            },
+          }],
+        },
+        grain: {
+          enabled: document.getElementById('grainEnabled').checked,
+          intensity: Number(document.getElementById('grainIntensity').value),
+          size: Number(document.getElementById('grainSize').value),
+          monochrome: document.getElementById('grainMono').checked,
+        },
+      };
+    }
+
+    function buildOutputPath(inputPath) {
+      const dot = inputPath.lastIndexOf('.');
+      return inputPath.slice(0, dot) + '-argentique' + inputPath.slice(dot);
+    }
+
+    // ---- progression vidéo (alimente le bandeau pellicule) ----
+    window.filmLook.onVideoProgress((progress) => {
+      const stageLabels = {
+        analyse: 'Analyse de la vidéo…',
+        extraction: 'Extraction des frames…',
+        traitement: progress.total
+          ? `Traitement des frames… ${progress.current}/${progress.total}`
+          : 'Traitement des frames…',
+        assemblage: 'Réassemblage de la vidéo…',
+        'terminé': 'Export terminé ✓',
+      };
+      setStatus(stageLabels[progress.stage] || progress.stage, true);
+      if (progress.stage === 'traitement' && progress.total) {
+        fillEl.style.width = `${(progress.current / progress.total) * 100}%`;
+      } else if (progress.stage === 'terminé') {
+        fillEl.style.width = '100%';
+      }
+    });
+
+    // LUT'S
+    function parseCubeLUT(text) {
+      const lines = text.split('\n');
+      let size = 0;
+      const table = [];
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!line || line.startsWith('#')) continue;
+
+        if (line.startsWith('LUT_3D_SIZE')) {
+          size = parseInt(line.split(/\s+/)[1], 10);
+          continue;
+        }
+
+        // Si la ligne contient 3 nombres (R G B)
+        const parts = line.split(/\s+/);
+        if (parts.length === 3) {
+          const r = parseFloat(parts[0]);
+          const g = parseFloat(parts[1]);
+          const b = parseFloat(parts[2]);
+          if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+            table.push([r * 255, g * 255, b * 255]);
+          }
+        }
+      }
+
+      if (size === 0 || table.length !== size * size * size) {
+        throw new Error('Format de LUT invalide ou non supporté (seules les LUTs 3D sont gérées).');
+      }
+
+      return { size, table };
+    }
+
+    function applyLutToPixel(r, g, b, lut, layout) {
+      const size = lut.size;
+      const m = size - 1;
+
+      // On mappe les valeurs 0-255 sur les indices de la grille de la LUT
+      const x = (r / 255) * m;
+      const y = (g / 255) * m;
+      const z = (b / 255) * m;
+
+      // Calcul de l'index 1D dans le tableau .cube
+      const getIndex = (cx, cy, cz) => {
+        const clampX = Math.min(m, Math.max(0, cx));
+        const clampY = Math.min(m, Math.max(0, cy));
+        const clampZ = Math.min(m, Math.max(0, cz));
+
+        if (layout === 'BGR') {
+          // Layout inversé : B grandit en premier, puis G, puis R
+          return clampZ + clampY * size + clampX * size * size;
+        } else {
+          // Layout Standard (par défaut dans Resolve) : R grandit en premier, puis G, puis B
+          return clampX + clampY * size + clampZ * size * size;
+        }
+      };
+
+      // On récupère la couleur la plus proche dans la LUT
+      const lutColor = lut.table[getIndex(Math.round(x), Math.round(y), Math.round(z))];
+
+      return lutColor ? { r: lutColor[0], g: lutColor[1], b: lutColor[2] } : { r, g, b };
+    }
+
+    const lutInput = document.getElementById('lutInput');
+    const lutSelectBtn = document.getElementById('lutSelectBtn');
+    const lutNameEl = document.getElementById('lutName');
+
+    // Relier le clic du bouton stylisé à l'input masqué
+    lutSelectBtn.addEventListener('click', () => lutInput.click());
+
+    // Quand une LUT est sélectionnée
+    lutInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      lutNameEl.textContent = "Lecture du fichier...";
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          currentLutData = parseCubeLUT(evt.target.result);
+          lutNameEl.textContent = file.name;
+          document.getElementById('lutEnabled').checked = true; // Active la case automatiquement
+          syncToggleStates();
+          schedulePreview(); // Rafraîchit l'image
+        } catch (err) {
+          lutNameEl.textContent = "Erreur : " + err.message;
+          currentLutData = null;
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // ---- export ----
+    exportBtn.addEventListener('click', async () => {
+      if (!currentFilePath) return;
+      exportBtn.disabled = true;
+      fillEl.style.width = '0%';
+      const outputPath = buildOutputPath(currentFilePath);
+      const options = buildOptions();
+
+      try {
+        if (currentFileType === 'image') {
+          setStatus('Traitement de l\'image…', true);
+          fillEl.style.width = '60%';
+          await window.filmLook.processImage({ inputPath: currentFilePath, outputPath, options });
+          fillEl.style.width = '100%';
+          setStatus('Export terminé ✓ — ' + outputPath, true);
+        } else {
+          await window.filmLook.processVideo({ inputPath: currentFilePath, outputPath, options });
+        }
+      } catch (err) {
+        setStatus('Erreur : ' + err.message, true);
+        console.error(err);
+      } finally {
+        exportBtn.disabled = false;
+      }
+    });
+
+    lutIntensity.addEventListener('input', () => {
+      lutIntensityVal.textContent = `${lutIntensity.value}%`;
+    });
+
+    syncToggleStates();
+    syncSliderLabels();
+  </script>
 </body>
+
 </html>

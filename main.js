@@ -10,13 +10,14 @@ if (process.env.NODE_ENV !== 'production') {
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1200,
-    height: 760,
+    width: 1280,
+    height: 768,
     backgroundColor: '#1c1814',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
     },
   });
   win.loadFile('index.html');

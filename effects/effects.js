@@ -196,9 +196,135 @@ function clamp01(v) {
   return v < 0 ? 0 : v > 1 ? 1 : v;
 }
 
+/* ------------------------------------------------------------------ */
+/* 4. EXPOSITION, CONTRASTE, SATURATION, NIVEAUX                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Exposition façon photo : multiplie la lumière par 2^stops.
+ * @param {number} stops  ex: +1 = deux fois plus de lumière, -1 = moitié moins (typiquement -3..+3)
+ */
+function adjustExposure(data, width, height, stops = 0) {
+  if (stops === 0) return;
+  const factor = Math.pow(2, stops);
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = clamp(data[i] * factor);
+    data[i + 1] = clamp(data[i + 1] * factor);
+    data[i + 2] = clamp(data[i + 2] * factor);
+  }
+}
+
+/**
+ * Contraste classique autour du gris moyen (128).
+ * @param {number} amount  -100 (plat) .. 0 (inchangé) .. 100 (très contrasté)
+ */
+function adjustContrast(data, width, height, amount = 0) {
+  if (amount === 0) return;
+  const factor = (100 + amount) / 100;
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = clamp((data[i] - 128) * factor + 128);
+    data[i + 1] = clamp((data[i + 1] - 128) * factor + 128);
+    data[i + 2] = clamp((data[i + 2] - 128) * factor + 128);
+  }
+}
+
+/**
+ * Saturation par interpolation avec le niveau de gris du pixel
+ * (préserve la luminosité, contrairement à un simple scale en HSL).
+ * @param {number} amount  -100 (noir et blanc) .. 0 (inchangé) .. 100 (saturation doublée)
+ */
+function adjustSaturation(data, width, height, amount = 0) {
+  if (amount === 0) return;
+  const factor = 1 + amount / 100;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    data[i] = clamp(gray + (r - gray) * factor);
+    data[i + 1] = clamp(gray + (g - gray) * factor);
+    data[i + 2] = clamp(gray + (b - gray) * factor);
+  }
+}
+
+/**
+ * Niveaux façon Photoshop/Lightroom : point noir/blanc d'entrée, gamma
+ * (milieux de tons), point noir/blanc de sortie. Appliqué de façon
+ * identique sur R/G/B (réglage "master", pas canal par canal).
+ *
+ * @param {object} options
+ * @param {number} options.inputBlack   0-255, défaut 0
+ * @param {number} options.inputWhite   0-255, défaut 255
+ * @param {number} options.gamma        0.1-9.9, défaut 1 (1 = pas de changement des tons moyens)
+ * @param {number} options.outputBlack  0-255, défaut 0
+ * @param {number} options.outputWhite  0-255, défaut 255
+ */
+function applyLevels(data, width, height, options = {}) {
+  const {
+    inputBlack = 0,
+    inputWhite = 255,
+    gamma = 1,
+    outputBlack = 0,
+    outputWhite = 255,
+  } = options;
+
+  const inRange = Math.max(1, inputWhite - inputBlack); // évite la division par zéro
+  const outRange = outputWhite - outputBlack;
+  const invGamma = 1 / gamma;
+
+  for (let i = 0; i < data.length; i += 4) {
+    for (let c = 0; c < 3; c++) {
+      let v = clamp01((data[i + c] - inputBlack) / inRange);
+      v = Math.pow(v, invGamma);
+      data[i + c] = clamp(outputBlack + v * outRange);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. PIPELINE CENTRAL                                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Applique tous les filtres activés, dans un ordre cohérent :
+ * exposition -> niveaux -> contraste -> saturation -> teinte sélective -> grain.
+ * Chaque filtre est indépendant : s'il est absent ou `enabled: false`, on le saute.
+ * C'est la fonction unique utilisée par l'aperçu live, l'export image et l'export vidéo,
+ * pour garantir un résultat identique entre les trois.
+ *
+ * @param {object} settings
+ * @param {object} [settings.exposure]    { enabled, stops }
+ * @param {object} [settings.levels]      { enabled, inputBlack, inputWhite, gamma, outputBlack, outputWhite }
+ * @param {object} [settings.contrast]    { enabled, amount }
+ * @param {object} [settings.saturation]  { enabled, amount }
+ * @param {object} [settings.colorSwaps]  { enabled, swaps: [{ target, replacement, options }] }
+ * @param {object} [settings.grain]       { enabled, intensity, monochrome, size }
+ */
+function applyPipeline(data, width, height, settings = {}) {
+  const { exposure, levels, contrast, saturation, colorSwaps, grain } = settings;
+
+  if (exposure?.enabled) adjustExposure(data, width, height, exposure.stops ?? 0);
+  if (levels?.enabled) applyLevels(data, width, height, levels);
+  if (contrast?.enabled) adjustContrast(data, width, height, contrast.amount ?? 0);
+  if (saturation?.enabled) adjustSaturation(data, width, height, saturation.amount ?? 0);
+
+  if (colorSwaps?.enabled && Array.isArray(colorSwaps.swaps)) {
+    for (const swap of colorSwaps.swaps) {
+      replaceColorSelective(data, width, height, swap.target, swap.replacement, swap.options || {});
+    }
+  }
+
+  if (grain?.enabled) addFilmGrain(data, width, height, grain);
+
+  return data;
+}
+
 module.exports = {
   addFilmGrain,
   replaceColorSelective,
+  adjustExposure,
+  adjustContrast,
+  adjustSaturation,
+  applyLevels,
+  applyPipeline,
   rgbToHsl,
   hslToRgb,
 };
